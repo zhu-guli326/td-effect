@@ -1,0 +1,12 @@
+{
+  "name": "td-processing-effects-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "python3 -m http.server 4175 --bind 127.0.0.1",
+    "check": "node --check effects.js"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
+  }
+}
