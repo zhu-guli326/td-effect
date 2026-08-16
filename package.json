@@ -1,9 +1,8 @@
 {
   "name": "td-effect-visual-engine",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "private": true,
   "scripts": {
-    "dev": "python3 -m http.server 4175 --bind 127.0.0.1",
-    "check": "node --check src/app.js"
+    "dev": "python3 -m http.server 4175 --bind 127.0.0.1"
   }
 }
