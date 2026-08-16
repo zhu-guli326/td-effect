@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TD Effect Visual Engine v0.3</title>
+  <title>TD Effect Visual Engine v0.3.1</title>
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./v03.css" />
 </head>
 <body>
 <main class="shell">
   <header class="topbar">
-    <div><p class="kicker">REALTIME VISUAL ENGINE / V0.3</p><h1><span>TouchDesigner / </span><span>Processing </span><span>视觉实验场</span></h1></div>
+    <div><p class="kicker">REALTIME BODY-REACTIVE ENGINE / V0.3.1</p><h1><span>TouchDesigner / </span><span>Processing </span><span>视觉实验场</span></h1></div>
     <div class="controls" aria-label="source controls">
       <button id="cameraButton" type="button">开启摄像头</button>
       <button id="syntheticButton" type="button" class="secondary">合成源</button>
@@ -22,11 +22,11 @@
   <section class="spatial-stage" aria-label="gpu composed realtime visual field">
     <canvas id="compositeStage" width="960" height="540"></canvas>
     <canvas id="threeStage" width="960" height="540"></canvas>
-    <div class="stage-label stage-label-left"><p class="label">GPU Composer + Real CV Overlay</p><p id="stageState">INITIALIZING VISUAL ENGINE…</p></div>
+    <div class="stage-label stage-label-left"><p class="label">GPU Composer + Real CV Overlay</p><p id="stageState">INITIALIZING LIVE INTERACTION FIELD…</p></div>
     <div class="stage-label stage-label-right"><span>INPUT <b id="stageInput">SYNTHETIC</b></span><span>FLOW <b id="stageDepth">0.00</b></span><span>POSE <b id="stageNodes">FLOW</b></span><span>CV <b id="stagePhase">IDLE</b></span></div>
   </section>
   <section class="source-strip" aria-label="source preview">
-    <div class="source-card"><canvas id="sourcePreview" width="320" height="220"></canvas><div><p class="label">Input feed</p><p id="status">合成源运行中；Optical Flow / GPU Pipeline 已启用。</p></div></div>
+    <div class="source-card"><canvas id="sourcePreview" width="320" height="220"></canvas><div><p class="label">Input feed</p><p id="status">合成源运行中；实时 Optical Flow / GPU Pipeline 已启用。开启摄像头后进入身体交互模式。</p></div></div>
     <div class="style-deck" aria-label="visual style controls"><p class="label">Visual direction</p><div class="style-modes" role="group" aria-label="选择视觉风格">
       <button type="button" class="style-mode" data-style="chrome" aria-pressed="false"><i></i>冷铬</button>
       <button type="button" class="style-mode" data-style="lacquer" aria-pressed="false"><i></i>朱漆</button>
@@ -40,21 +40,22 @@
     <dl class="telemetry-values"><div><dt>FRAME</dt><dd id="statFrame">0000</dd></div><div><dt>ANALYSIS FPS</dt><dd id="statFps">0.0</dd></div><div><dt>LUMA</dt><dd id="statLuma">0.000</dd></div><div><dt>MOTION</dt><dd id="statMotion">0.000</dd></div><div><dt>CENTER</dt><dd id="statCenter">0.50×0.50</dd></div><div><dt>RUNTIME</dt><dd id="statRuntime">0.0ms</dd></div><div><dt>POSE</dt><dd id="statTriangles">--</dd></div></dl>
   </section>
   <section class="grid" aria-label="effect previews">
-    <article class="effect-card effect-feedback"><div class="canvas-wrap"><canvas id="feedback" width="360" height="240"></canvas><span class="effect-hud">GPU / 01 <b id="readout-feedback">HISTORY</b></span></div><h2>GPU Feedback</h2><p>GPU ping-pong feedback，运动与人像 Mask 共同改变残影保留和色散。</p></article>
-    <article class="effect-card effect-displacement"><div class="canvas-wrap"><canvas id="displacement" width="360" height="240"></canvas><span class="effect-hud">FLOW / 02 <b id="readout-displacement">LK WARP</b></span></div><h2>Optical-flow displacement</h2><p>使用 Lucas–Kanade 光流纹理驱动 GPU 位移，不再用噪声模拟“光流”。</p></article>
+    <article class="effect-card effect-feedback"><div class="canvas-wrap"><canvas id="feedback" width="360" height="240"></canvas><span class="effect-hud">HERO / 01 <b id="readout-feedback">ECHO 0.00</b></span></div><h2>Body Echo / 时间身体</h2><p>人物 Mask 进入时间缓存；动作越快，过去的身体被 Optical Flow 拉得越远，背景尽量保持稳定。</p></article>
+    <article class="effect-card effect-displacement"><div class="canvas-wrap"><canvas id="displacement" width="360" height="240"></canvas><span class="effect-hud">HERO / 02 <b id="readout-displacement">FLOW 0.00</b></span></div><h2>Flow Skin / 流体皮肤</h2><p>真实 Lucas–Kanade 局部光流直接扭动人体表面。手臂往哪挥，皮肤纹理就往哪流。</p></article>
     <article class="effect-card effect-slitscan"><div class="canvas-wrap"><canvas id="slitscan" width="360" height="240"></canvas><span class="effect-hud">TIME / 03 <b id="readout-slitscan">48F</b></span></div><h2>Slit-scan</h2><p>独立 frame-history effect，按时间切片拉伸真实动作。</p></article>
-    <article class="effect-card effect-pointcloud"><div class="canvas-wrap"><canvas id="pointcloud" width="360" height="240"></canvas><span class="effect-hud">POSE / 04 <b id="readout-pointcloud">MASK --</b></span></div><h2>Pose mask depth field</h2><p>人像 Mask + Pose landmarks 驱动点场，摄像头开启后直接跟随真人轮廓。</p></article>
+    <article class="effect-card effect-pointcloud"><div class="canvas-wrap"><canvas id="pointcloud" width="360" height="240"></canvas><span class="effect-hud">HERO / 04 <b id="readout-pointcloud">FLOW BODY</b></span></div><h2>Magnetic Body / 磁性粒子人体</h2><p>粒子把人体 Mask 当作 Home Position；运动会把粒子吹散，停下来后粒子被弹簧力吸回身体。</p></article>
     <article class="effect-card effect-flow"><div class="canvas-wrap"><canvas id="flow" width="360" height="240"></canvas><span class="effect-hud">CV / 05 <b id="readout-flow">LK 0.00</b></span></div><h2>Lucas–Kanade flow particles</h2><p>粒子真正采样光流向量移动，主体动作方向会传递到粒子场。</p></article>
     <article class="effect-card effect-triangulation"><div class="canvas-wrap"><canvas id="triangulation" width="360" height="240"></canvas><span class="effect-hud">POSE / 06 <b id="readout-triangulation">WAIT CV</b></span></div><h2>Pose topology mesh</h2><p>基于真实人体 landmarks 建立动态拓扑连线，而不是固定程序骨架。</p></article>
     <article class="effect-card effect-pixelsort"><div class="canvas-wrap"><canvas id="pixelsort" width="360" height="240"></canvas><span class="effect-hud">SORT / 07 <b id="readout-pixelsort">MOTION CUT</b></span></div><h2>Motion pixel sort</h2><p>动作强度直接改变排序阈值和区域，保留原画颜色。</p></article>
     <article class="effect-card effect-reaction"><div class="canvas-wrap"><canvas id="reaction" width="360" height="240"></canvas><span class="effect-hud">GPU / 08 <b id="readout-reaction">RD</b></span></div><h2>GPU Reaction-diffusion</h2><p>Gray–Scott 反应扩散迁移到 WebGL2，多步迭代由画面边缘、动作和 Mask 播种。</p></article>
     <article class="effect-card effect-hdbeads"><div class="canvas-wrap"><canvas id="hdbeads" width="360" height="240"></canvas><span class="effect-hud">MASK / 09 <b id="readout-hdbeads">DENSE</b></span></div><h2>Mask bead field</h2><p>人像 Mask 控制高密度珠面场，人物进入后会形成轮廓雕塑。</p></article>
     <article class="effect-card effect-beads"><div class="canvas-wrap"><canvas id="beads" width="360" height="240"></canvas><span class="effect-hud">MASK / 10 <b id="readout-beads">PERLER</b></span></div><h2>Perler body</h2><p>低分辨率珠粒只在人体 Mask 内重构主体。</p></article>
-    <article class="effect-card effect-rings"><div class="canvas-wrap"><canvas id="rings" width="360" height="240"></canvas><span class="effect-hud">FLOW / 11 <b id="readout-rings">CENTER</b></span></div><h2>Flow-centered rings</h2><p>运动质心和平均光流决定环形场的中心与方向。</p></article>
+    <article class="effect-card effect-rings"><div class="canvas-wrap"><canvas id="rings" width="360" height="240"></canvas><span class="effect-hud">HERO / 11 <b id="readout-rings">HAND FIELD</b></span></div><h2>Hand Singularity / 双手能量场</h2><p>双腕 landmarks 控制力场中心与半径：双手靠近聚能，快速张开会把粒子场瞬间炸开。</p></article>
     <article class="effect-card effect-ascii"><div class="canvas-wrap"><canvas id="ascii" width="360" height="240"></canvas><span class="effect-hud">TYPE / 12 <b id="readout-ascii">LUMA</b></span></div><h2>ASCII reconstruction</h2><p>亮度映射字符密度，实时输入原色重构。</p></article>
   </section>
 </main>
 <video id="camera" playsinline muted></video>
 <script type="module" src="./src/app.js"></script>
+<script type="module" src="./src/interactive-bootstrap.js"></script>
 </body>
 </html>
