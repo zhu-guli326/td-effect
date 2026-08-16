@@ -1,21 +1,22 @@
+import './hand-bootstrap.js';
+import { bodyEchoFactory } from './effects/interactive-effects.js';
 import {
-  bodyEchoFactory,
-  flowSkinFactory,
-  magneticBodyFactory,
-  handSingularityFactory,
-} from './effects/interactive-effects.js';
+  handFlowSkinFactory,
+  magneticHandFactory,
+  gestureHandFieldFactory,
+} from './effects/hand-mask-effects.js';
 
 const HERO_EFFECTS = [
   { id: 'feedback', factory: bodyEchoFactory, fps: 45, offscreenFps: 5, label: 'BODY ECHO' },
-  { id: 'displacement', factory: flowSkinFactory, fps: 45, offscreenFps: 5, label: 'FLOW SKIN' },
-  { id: 'pointcloud', factory: magneticBodyFactory, fps: 50, offscreenFps: 6, label: 'MAGNETIC BODY' },
-  { id: 'rings', factory: handSingularityFactory, fps: 50, offscreenFps: 6, label: 'HAND FIELD' },
+  { id: 'displacement', factory: handFlowSkinFactory, fps: 45, offscreenFps: 5, label: 'HAND FLOW SKIN' },
+  { id: 'pointcloud', factory: magneticHandFactory, fps: 50, offscreenFps: 6, label: 'MAGNETIC HAND BODY' },
+  { id: 'rings', factory: gestureHandFieldFactory, fps: 50, offscreenFps: 6, label: 'GESTURE HAND FIELD' },
 ];
 
 function waitForEngine() {
   return new Promise((resolve) => {
     const check = () => {
-      if (window.TDEngine?.scheduler && window.TDEngine?.analysis) resolve(window.TDEngine);
+      if (window.TDEngine?.scheduler && window.TDEngine?.analysis && window.TDEngine?.hand) resolve(window.TDEngine);
       else requestAnimationFrame(check);
     };
     check();
@@ -30,15 +31,8 @@ function makeContext(engine, id) {
     source: engine.source,
     analysis: engine.analysis,
     cv: engine.cv,
+    hand: engine.hand,
   };
-}
-
-function handDistance(signal) {
-  const pose = signal.poseLandmarks?.[0];
-  const left = pose?.[15];
-  const right = pose?.[16];
-  if (!left || !right) return null;
-  return Math.hypot(left.x - right.x, left.y - right.y);
 }
 
 function updateReadout(id, signal) {
@@ -46,11 +40,12 @@ function updateReadout(id, signal) {
   if (!target) return;
   const flow = Math.hypot(signal.flowX || 0, signal.flowY || 0);
   if (id === 'feedback') target.textContent = `ECHO ${(signal.motion || 0).toFixed(2)}`;
-  if (id === 'displacement') target.textContent = `FLOW ${flow.toFixed(2)}`;
-  if (id === 'pointcloud') target.textContent = signal.maskReady ? `RETURN ${(1 - Math.min(1, signal.motion || 0)).toFixed(2)}` : `FLOW ${flow.toFixed(2)}`;
+  if (id === 'displacement') target.textContent = signal.handReady ? `${signal.handGesture || 'HAND'} ${(signal.handSpeed || 0).toFixed(2)}` : `FLOW ${flow.toFixed(2)}`;
+  if (id === 'pointcloud') target.textContent = signal.handReady ? `HAND ×${signal.handCount || 0}` : signal.maskReady ? `BODY RETURN` : `FLOW ${flow.toFixed(2)}`;
   if (id === 'rings') {
-    const distance = handDistance(signal);
-    target.textContent = distance === null ? `FORCE ${flow.toFixed(2)}` : `HANDS ${distance.toFixed(2)}`;
+    const gesture = signal.handGesture || 'None';
+    const pinch = signal.handPinch || 0;
+    target.textContent = signal.handReady ? `${gesture} P${pinch.toFixed(2)}` : `FORCE ${flow.toFixed(2)}`;
   }
 }
 
@@ -82,6 +77,11 @@ for (const definition of HERO_EFFECTS) {
         edges: engine.analysis.edgeCanvas,
         mask: engine.cv.maskCanvas,
         landmarks: engine.cv.poseLandmarks,
+        handMask: engine.hand.maskCanvas,
+        handField: engine.hand.fieldCanvas,
+        leftHandMask: engine.hand.leftMaskCanvas,
+        rightHandMask: engine.hand.rightMaskCanvas,
+        hands: engine.hand.hands,
       });
       updateReadout(definition.id, signal);
     },
@@ -92,7 +92,7 @@ for (const definition of HERO_EFFECTS) {
   });
 }
 
-engine.version = '0.3.1';
+engine.version = '0.3.2';
 engine.interactions = {
   effects,
   ids: HERO_EFFECTS.map((effect) => effect.id),
@@ -100,6 +100,6 @@ engine.interactions = {
     for (const dispose of disposers.splice(0)) dispose();
   },
 };
-engine.bus.publish({ interactionMode: 'body-reactive', interactionEffects: HERO_EFFECTS.map((effect) => effect.label) });
+engine.bus.publish({ interactionMode: 'hand-mask-reactive', interactionEffects: HERO_EFFECTS.map((effect) => effect.label) });
 
 window.addEventListener('beforeunload', () => engine.interactions?.dispose(), { once: true });
