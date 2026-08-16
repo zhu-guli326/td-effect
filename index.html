@@ -3,20 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TD / Processing Effects Prototype</title>
+    <title>TD Effect Runtime v0.2</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="shell">
       <header class="topbar">
         <div>
-          <p class="kicker">LIVE IMAGE STUDIES</p>
-          <h1><span>TouchDesigner / </span><span>Processing </span><span>视觉样片</span></h1>
+          <p class="kicker">REALTIME IMAGE RUNTIME / V0.2</p>
+          <h1><span>TouchDesigner / </span><span>Processing </span><span>视觉实验场</span></h1>
         </div>
         <div class="controls" aria-label="source controls">
           <button id="cameraButton" type="button">开启摄像头</button>
           <button id="syntheticButton" type="button" class="secondary">合成源</button>
-          <button id="wireframeButton" type="button" class="wireframe-button" aria-pressed="false">线框光束</button>
+          <button id="wireframeButton" type="button" class="wireframe-button" aria-pressed="false">程序线框</button>
           <button id="burstButton" type="button" class="burst-button">色彩爆发</button>
           <label class="meter">
             <span>强度</span>
@@ -25,13 +25,14 @@
         </div>
       </header>
 
-      <section class="spatial-stage" aria-label="three dimensional spatial field">
+      <section class="spatial-stage" aria-label="motion reactive three dimensional spatial field">
         <canvas id="threeStage"></canvas>
         <div class="stage-label stage-label-left">
-          <p class="label">Spatial field</p>
-          <p id="stageState">THREE DIMENSIONAL PARTICLE BODY / IDLE</p>
+          <p class="label">Signal-driven spatial field</p>
+          <p id="stageState">WAITING FOR RUNTIME SIGNAL</p>
         </div>
         <div class="stage-label stage-label-right">
+          <span>INPUT <b id="stageInput">SYNTHETIC</b></span>
           <span>DEPTH <b id="stageDepth">04.80</b></span>
           <span>NODES <b id="stageNodes">7800</b></span>
           <span>PHASE <b id="stagePhase">000</b></span>
@@ -43,7 +44,7 @@
           <canvas id="sourcePreview" width="320" height="220"></canvas>
           <div>
             <p class="label">Input feed</p>
-            <p id="status">使用合成源。摄像头允许后会自动切换。</p>
+            <p id="status">使用合成源。开启摄像头后会切换到实时输入。</p>
           </div>
         </div>
         <div class="style-deck" aria-label="visual style controls">
@@ -59,7 +60,7 @@
 
       <section class="telemetry-band" aria-label="live image telemetry">
         <div class="telemetry-copy">
-          <p class="label">Live signal field</p>
+          <p class="label">Runtime signal bus</p>
           <p id="signalState">SYNTHETIC INPUT / TRACKING LUMINANCE</p>
         </div>
         <canvas id="signalMap" width="920" height="86" aria-hidden="true"></canvas>
@@ -68,6 +69,8 @@
           <div><dt>FPS</dt><dd id="statFps">60.0</dd></div>
           <div><dt>LUMA</dt><dd id="statLuma">0.000</dd></div>
           <div><dt>MOTION</dt><dd id="statMotion">0.000</dd></div>
+          <div><dt>CENTER</dt><dd id="statCenter">0.50×0.50</dd></div>
+          <div><dt>FX LOOP</dt><dd id="statRuntime">0.0ms</dd></div>
           <div><dt>TRI</dt><dd id="statTriangles">000</dd></div>
         </dl>
       </section>
@@ -76,67 +79,68 @@
         <article class="effect-card effect-feedback">
           <div class="canvas-wrap"><canvas id="feedback" width="360" height="240"></canvas><span class="effect-hud">FBK / 01 <b id="readout-feedback">GAIN 1.00</b></span></div>
           <h2>Feedback loop</h2>
-          <p>上一帧缩放、旋转、轻微衰减后叠回当前帧。</p>
+          <p>上一帧缩放、旋转并衰减后重新注入当前帧；运动越明显，注入能量越高。</p>
         </article>
         <article class="effect-card effect-displacement">
           <div class="canvas-wrap"><canvas id="displacement" width="360" height="240"></canvas><span class="effect-hud">UV / 02 <b id="readout-displacement">WARP 0.00</b></span></div>
-          <h2>Displacement by luminance</h2>
-          <p>亮度和流动噪声共同偏移采样坐标。</p>
+          <h2>Luminance displacement</h2>
+          <p>使用亮度梯度与时间噪声进行采样位移，并保留原始画面颜色。</p>
         </article>
         <article class="effect-card effect-slitscan">
           <div class="canvas-wrap"><canvas id="slitscan" width="360" height="240"></canvas><span class="effect-hud">TIME / 03 <b id="readout-slitscan">MEM 00F</b></span></div>
           <h2>Slit-scan / 时间置换</h2>
-          <p>每一行从不同历史帧取样，动作被拉成时间带。</p>
+          <p>从不同历史帧逐行采样，把动作拉成可见的时间切片。</p>
         </article>
         <article class="effect-card effect-pointcloud">
           <div class="canvas-wrap"><canvas id="pointcloud" width="360" height="240"></canvas><span class="effect-hud">DEPTH / 04 <b id="readout-pointcloud">PTS 0000</b></span></div>
-          <h2>Point cloud / instancing</h2>
-          <p>亮度控制点的大小、深度和透视偏移。</p>
+          <h2>Luma pseudo-depth points</h2>
+          <p>亮度映射为伪深度和点尺寸；这是视觉深度估计，不冒充真实深度传感。</p>
         </article>
         <article class="effect-card effect-flow">
           <div class="canvas-wrap"><canvas id="flow" width="360" height="240"></canvas><span class="effect-hud">FLOW / 05 <b id="readout-flow">VEL 0.000</b></span></div>
-          <h2>光流粒子</h2>
-          <p>粒子沿画面亮度梯度和时间差漂移。</p>
+          <h2>Motion-gradient particles</h2>
+          <p>使用帧间差与亮度梯度驱动粒子场；当前版本不是稠密 Optical Flow。</p>
         </article>
         <article class="effect-card effect-triangulation">
           <div class="canvas-wrap"><canvas id="triangulation" width="360" height="240"></canvas><span class="effect-hud">MESH / 06 <b id="readout-triangulation">TRI 000</b></span></div>
-          <h2>Voronoi / Delaunay 三角化</h2>
-          <p>动态点集三角剖分后用源画面颜色填充。</p>
+          <h2>Delaunay triangulation</h2>
+          <p>从画面边缘区域采样动态点集并进行三角剖分，再用源画面着色。</p>
         </article>
         <article class="effect-card effect-pixelsort">
           <div class="canvas-wrap"><canvas id="pixelsort" width="360" height="240"></canvas><span class="effect-hud">SORT / 07 <b id="readout-pixelsort">CUT 000</b></span></div>
           <h2>Pixel sorting</h2>
-          <p>亮部像素段按亮度排序，形成有机故障拉丝。</p>
+          <p>按亮度阈值选取像素段并重新排序，运动越强，参与排序的区域越多。</p>
         </article>
         <article class="effect-card effect-reaction">
           <div class="canvas-wrap"><canvas id="reaction" width="360" height="240"></canvas><span class="effect-hud">FIELD / 08 <b id="readout-reaction">B 0.000</b></span></div>
           <h2>Reaction-diffusion</h2>
-          <p>用画面亮度持续喂入 Gray-Scott 反应扩散场。</p>
+          <p>Gray-Scott 场由画面边缘和运动持续播种，让纹理由输入信号驱动生长。</p>
         </article>
         <article class="effect-card effect-hdbeads">
           <div class="canvas-wrap"><canvas id="hdbeads" width="360" height="240"></canvas><span class="effect-hud">BEAD / 09 <b id="readout-hdbeads">GRID 00</b></span></div>
           <h2>高清拼豆</h2>
-          <p>保留画面轮廓的高密度珠面采样，亮度决定每颗珠的起伏。</p>
+          <p>高密度珠面采样保留轮廓，原色与亮度共同控制珠体高光和起伏。</p>
         </article>
         <article class="effect-card effect-beads">
           <div class="canvas-wrap"><canvas id="beads" width="360" height="240"></canvas><span class="effect-hud">BEAD / 10 <b id="readout-beads">CELL 00</b></span></div>
           <h2>拼豆</h2>
-          <p>低分辨率色块和半透明珠粒，把运动压缩成可见的颗粒节奏。</p>
+          <p>低分辨率色块、有限色号与中心孔结构，把运动压缩为颗粒节奏。</p>
         </article>
         <article class="effect-card effect-rings">
           <div class="canvas-wrap"><canvas id="rings" width="360" height="240"></canvas><span class="effect-hud">RING / 11 <b id="readout-rings">FREQ 0.0</b></span></div>
-          <h2>同心圆扫描</h2>
-          <p>从信号中心向外扩散的环形置换，让主体像被声波雕刻。</p>
+          <h2>Motion-centered rings</h2>
+          <p>波纹中心跟随运动质心，而不是固定在屏幕中央。</p>
         </article>
         <article class="effect-card effect-ascii">
           <div class="canvas-wrap"><canvas id="ascii" width="360" height="240"></canvas><span class="effect-hud">TYPE / 12 <b id="readout-ascii">GLYPH 000</b></span></div>
-          <h2>字符画</h2>
-          <p>用亮度选择字符密度，叠加扫描线与信号噪点重构实时图像。</p>
+          <h2>ASCII reconstruction</h2>
+          <p>使用亮度映射字符密度，并从实时输入取色重构画面。</p>
         </article>
       </section>
     </main>
 
     <video id="camera" playsinline muted></video>
+    <script src="./runtime-host.js"></script>
     <script src="./effects.js"></script>
     <script type="module" src="./three-stage.js"></script>
   </body>
