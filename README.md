@@ -1,28 +1,77 @@
-# TD Effect Runtime
+# TD Effect Visual Engine
 
-A browser-based realtime visual playground inspired by TouchDesigner and Processing. v0.2 keeps the existing Canvas2D studies, but introduces a runtime layer so the project can grow into a real signal-driven effect engine instead of a collection of unrelated filters.
+A browser-based realtime visual engine inspired by TouchDesigner and Processing.
 
-## What changed in v0.2
+v0.3 changes the project from a monolithic Canvas2D sketchbook into a signal-driven runtime focused on **real visual behavior** rather than UI polish.
 
-- Added a global `TDRuntime` with a realtime Signal Bus.
-- Added low-resolution source analysis for luminance, motion energy, and motion centroid.
-- Connected the Three.js particle stage to the actual camera/synthetic motion signal.
-- Added a visibility-aware scheduler: the legacy effect loop is throttled when the effect grid is off-screen, and the Three.js stage is throttled when its stage is off-screen.
-- Replaced the local `node_modules` Three.js import with a browser CDN import so static hosting can render the spatial stage.
-- Renamed misleading studies: the current particle flow is motion-gradient driven, not dense optical flow; the point cloud uses luminance pseudo-depth; the wireframe is procedural, not pose tracking.
-- Added an effect manifest that documents inputs, statefulness, and rendering engine for each existing study.
+## v0.3 visual stack
 
-## Included studies
+```text
+Camera / Synthetic Source
+        ↓
+Source Engine
+        ↓
+Unified Analysis Engine
+ ├─ luminance
+ ├─ Sobel edges
+ ├─ frame motion
+ ├─ motion centroid
+ └─ Lucas–Kanade optical flow
+        ↓
+Real CV Engine (optional network dependency)
+ ├─ MediaPipe Pose Landmarker
+ ├─ pose landmarks
+ └─ person segmentation mask
+        ↓
+Signal Bus
+   ↙          ↘
+Effect Registry   GPU Effect Composer
+   ↓                 ↓
+12 independent FX   flow warp → feedback → mask glow → chromatic
+   ↓                 ↓
+Canvas2D/WebGL2   main stage
+```
 
-- Feedback loop and luminance displacement
-- Slit-scan and frame-memory effects
-- Luminance pseudo-depth points
-- Motion-gradient particles
-- Delaunay triangulation and pixel sorting
-- Gray-Scott reaction-diffusion
-- High-density beads / perler beads
-- Motion-centered rings and ASCII reconstruction
-- Signal-reactive Three.js particle field
+## What is now real
+
+- Optical flow uses a coarse Lucas–Kanade solver over the actual frame sequence.
+- Pose landmarks come from MediaPipe when the model is available.
+- Person masks come from Pose Landmarker segmentation, with a landmark-based body mask fallback.
+- The pose particle overlay is generated from detected joints and the person mask instead of a hard-coded skeleton.
+- Reaction-diffusion runs as a WebGL2 Gray–Scott simulation.
+- Feedback and flow displacement run as GPU shader passes.
+
+## Runtime architecture
+
+The old global `requestAnimationFrame` monkey patch is gone. A single explicit scheduler owns source, analysis, CV, composer, and per-effect cadence. Each effect has its own FPS and offscreen policy.
+
+The old monolithic `effects.js`, transitional `runtime-host.js`, and procedural `three-stage.js` are no longer part of the runtime.
+
+## Composer
+
+The default GPU chain is:
+
+```text
+flowWarp → feedback → maskGlow → chromatic
+```
+
+Change it at runtime:
+
+```js
+TDEngine.setChain(['flowWarp', 'feedback', 'chromatic']);
+```
+
+## Presets and recording foundation
+
+The UI is intentionally minimal for v0.3, but the underlying playground APIs are already available:
+
+```js
+TDEngine.savePreset('my-look');
+TDEngine.loadPreset('my-look');
+
+TDEngine.startRecording();
+const blob = await TDEngine.stopRecording();
+```
 
 ## Run locally
 
@@ -32,24 +81,4 @@ npm run dev
 
 Open `http://127.0.0.1:4175/`.
 
-The Three.js module is loaded from jsDelivr in the browser. Camera access requires localhost or HTTPS and explicit user permission.
-
-## Runtime architecture
-
-```text
-Camera / Synthetic Source
-          ↓
-   Preview Analysis
-  luma / motion / centroid
-          ↓
-      Signal Bus
-       ↙      ↘
-Legacy Canvas  Three.js Stage
- Effect Loop   motion-reactive
-       ↓
-  12 studies
-```
-
-This is an intermediate architecture. The 12 Canvas2D effects still live in `effects.js` and still share one legacy render loop. The runtime now controls when that loop runs and exposes shared signals, but the next migration is to move each effect into an independent module with explicit `inputs`, `state`, `update`, `render`, and `dispose` methods.
-
-See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the migration target.
+Camera access requires localhost or HTTPS. MediaPipe pose/mask loading requires network access to its browser runtime and model assets. Lucas–Kanade optical flow, GPU feedback/displacement/reaction-diffusion, slit-scan, pixel sort, rings, ASCII, and the synthetic source do not depend on MediaPipe.
