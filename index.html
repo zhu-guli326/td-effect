@@ -1,143 +1,61 @@
 <!doctype html>
 <html lang="zh-CN" data-style="prism">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TD / Processing Effects Prototype</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <main class="shell">
-      <header class="topbar">
-        <div>
-          <p class="kicker">LIVE IMAGE STUDIES</p>
-          <h1><span>TouchDesigner / </span><span>Processing </span><span>视觉样片</span></h1>
-        </div>
-        <div class="controls" aria-label="source controls">
-          <button id="cameraButton" type="button">开启摄像头</button>
-          <button id="syntheticButton" type="button" class="secondary">合成源</button>
-          <button id="wireframeButton" type="button" class="wireframe-button" aria-pressed="false">线框光束</button>
-          <button id="burstButton" type="button" class="burst-button">色彩爆发</button>
-          <label class="meter">
-            <span>强度</span>
-            <input id="intensity" type="range" min="0.35" max="1.8" value="1" step="0.05" />
-          </label>
-        </div>
-      </header>
-
-      <section class="spatial-stage" aria-label="three dimensional spatial field">
-        <canvas id="threeStage"></canvas>
-        <div class="stage-label stage-label-left">
-          <p class="label">Spatial field</p>
-          <p id="stageState">THREE DIMENSIONAL PARTICLE BODY / IDLE</p>
-        </div>
-        <div class="stage-label stage-label-right">
-          <span>DEPTH <b id="stageDepth">04.80</b></span>
-          <span>NODES <b id="stageNodes">7800</b></span>
-          <span>PHASE <b id="stagePhase">000</b></span>
-        </div>
-      </section>
-
-      <section class="source-strip" aria-label="source preview">
-        <div class="source-card">
-          <canvas id="sourcePreview" width="320" height="220"></canvas>
-          <div>
-            <p class="label">Input feed</p>
-            <p id="status">使用合成源。摄像头允许后会自动切换。</p>
-          </div>
-        </div>
-        <div class="style-deck" aria-label="visual style controls">
-          <p class="label">Visual direction</p>
-          <div class="style-modes" role="group" aria-label="选择视觉风格">
-            <button type="button" class="style-mode" data-style="chrome" aria-pressed="false"><i></i>冷铬</button>
-            <button type="button" class="style-mode" data-style="lacquer" aria-pressed="false"><i></i>朱漆</button>
-            <button type="button" class="style-mode is-active" data-style="prism" aria-pressed="true"><i></i>棱镜</button>
-            <button type="button" class="style-mode" data-style="mineral" aria-pressed="false"><i></i>深海矿物</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="telemetry-band" aria-label="live image telemetry">
-        <div class="telemetry-copy">
-          <p class="label">Live signal field</p>
-          <p id="signalState">SYNTHETIC INPUT / TRACKING LUMINANCE</p>
-        </div>
-        <canvas id="signalMap" width="920" height="86" aria-hidden="true"></canvas>
-        <dl class="telemetry-values">
-          <div><dt>FRAME</dt><dd id="statFrame">0000</dd></div>
-          <div><dt>FPS</dt><dd id="statFps">60.0</dd></div>
-          <div><dt>LUMA</dt><dd id="statLuma">0.000</dd></div>
-          <div><dt>MOTION</dt><dd id="statMotion">0.000</dd></div>
-          <div><dt>TRI</dt><dd id="statTriangles">000</dd></div>
-        </dl>
-      </section>
-
-      <section class="grid" aria-label="effect previews">
-        <article class="effect-card effect-feedback">
-          <div class="canvas-wrap"><canvas id="feedback" width="360" height="240"></canvas><span class="effect-hud">FBK / 01 <b id="readout-feedback">GAIN 1.00</b></span></div>
-          <h2>Feedback loop</h2>
-          <p>上一帧缩放、旋转、轻微衰减后叠回当前帧。</p>
-        </article>
-        <article class="effect-card effect-displacement">
-          <div class="canvas-wrap"><canvas id="displacement" width="360" height="240"></canvas><span class="effect-hud">UV / 02 <b id="readout-displacement">WARP 0.00</b></span></div>
-          <h2>Displacement by luminance</h2>
-          <p>亮度和流动噪声共同偏移采样坐标。</p>
-        </article>
-        <article class="effect-card effect-slitscan">
-          <div class="canvas-wrap"><canvas id="slitscan" width="360" height="240"></canvas><span class="effect-hud">TIME / 03 <b id="readout-slitscan">MEM 00F</b></span></div>
-          <h2>Slit-scan / 时间置换</h2>
-          <p>每一行从不同历史帧取样，动作被拉成时间带。</p>
-        </article>
-        <article class="effect-card effect-pointcloud">
-          <div class="canvas-wrap"><canvas id="pointcloud" width="360" height="240"></canvas><span class="effect-hud">DEPTH / 04 <b id="readout-pointcloud">PTS 0000</b></span></div>
-          <h2>Point cloud / instancing</h2>
-          <p>亮度控制点的大小、深度和透视偏移。</p>
-        </article>
-        <article class="effect-card effect-flow">
-          <div class="canvas-wrap"><canvas id="flow" width="360" height="240"></canvas><span class="effect-hud">FLOW / 05 <b id="readout-flow">VEL 0.000</b></span></div>
-          <h2>光流粒子</h2>
-          <p>粒子沿画面亮度梯度和时间差漂移。</p>
-        </article>
-        <article class="effect-card effect-triangulation">
-          <div class="canvas-wrap"><canvas id="triangulation" width="360" height="240"></canvas><span class="effect-hud">MESH / 06 <b id="readout-triangulation">TRI 000</b></span></div>
-          <h2>Voronoi / Delaunay 三角化</h2>
-          <p>动态点集三角剖分后用源画面颜色填充。</p>
-        </article>
-        <article class="effect-card effect-pixelsort">
-          <div class="canvas-wrap"><canvas id="pixelsort" width="360" height="240"></canvas><span class="effect-hud">SORT / 07 <b id="readout-pixelsort">CUT 000</b></span></div>
-          <h2>Pixel sorting</h2>
-          <p>亮部像素段按亮度排序，形成有机故障拉丝。</p>
-        </article>
-        <article class="effect-card effect-reaction">
-          <div class="canvas-wrap"><canvas id="reaction" width="360" height="240"></canvas><span class="effect-hud">FIELD / 08 <b id="readout-reaction">B 0.000</b></span></div>
-          <h2>Reaction-diffusion</h2>
-          <p>用画面亮度持续喂入 Gray-Scott 反应扩散场。</p>
-        </article>
-        <article class="effect-card effect-hdbeads">
-          <div class="canvas-wrap"><canvas id="hdbeads" width="360" height="240"></canvas><span class="effect-hud">BEAD / 09 <b id="readout-hdbeads">GRID 00</b></span></div>
-          <h2>高清拼豆</h2>
-          <p>保留画面轮廓的高密度珠面采样，亮度决定每颗珠的起伏。</p>
-        </article>
-        <article class="effect-card effect-beads">
-          <div class="canvas-wrap"><canvas id="beads" width="360" height="240"></canvas><span class="effect-hud">BEAD / 10 <b id="readout-beads">CELL 00</b></span></div>
-          <h2>拼豆</h2>
-          <p>低分辨率色块和半透明珠粒，把运动压缩成可见的颗粒节奏。</p>
-        </article>
-        <article class="effect-card effect-rings">
-          <div class="canvas-wrap"><canvas id="rings" width="360" height="240"></canvas><span class="effect-hud">RING / 11 <b id="readout-rings">FREQ 0.0</b></span></div>
-          <h2>同心圆扫描</h2>
-          <p>从信号中心向外扩散的环形置换，让主体像被声波雕刻。</p>
-        </article>
-        <article class="effect-card effect-ascii">
-          <div class="canvas-wrap"><canvas id="ascii" width="360" height="240"></canvas><span class="effect-hud">TYPE / 12 <b id="readout-ascii">GLYPH 000</b></span></div>
-          <h2>字符画</h2>
-          <p>用亮度选择字符密度，叠加扫描线与信号噪点重构实时图像。</p>
-        </article>
-      </section>
-    </main>
-
-    <video id="camera" playsinline muted></video>
-    <script src="./effects.js"></script>
-    <script type="module" src="./three-stage.js"></script>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TD Effect Visual Engine v0.3.2</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./v03.css" />
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <div><p class="kicker">REALTIME HAND-MASK ENGINE / V0.3.2</p><h1><span>TouchDesigner / </span><span>Processing </span><span>视觉实验场</span></h1></div>
+    <div class="controls" aria-label="source controls">
+      <button id="cameraButton" type="button">开启摄像头</button>
+      <button id="syntheticButton" type="button" class="secondary">合成源</button>
+      <button id="wireframeButton" type="button" class="wireframe-button is-active" aria-pressed="true">Pose 粒子</button>
+      <button id="burstButton" type="button" class="burst-button">能量爆发</button>
+      <label class="meter"><span>强度</span><input id="intensity" type="range" min="0.35" max="1.8" value="1" step="0.05" /></label>
+    </div>
+  </header>
+  <section class="spatial-stage" aria-label="gpu composed realtime visual field">
+    <canvas id="compositeStage" width="960" height="540"></canvas>
+    <canvas id="threeStage" width="960" height="540"></canvas>
+    <div class="stage-label stage-label-left"><p class="label">GPU Composer + Pose / Hand CV</p><p id="stageState">INITIALIZING LIVE INTERACTION FIELD…</p></div>
+    <div class="stage-label stage-label-right"><span>INPUT <b id="stageInput">SYNTHETIC</b></span><span>FLOW <b id="stageDepth">0.00</b></span><span>POSE <b id="stageNodes">FLOW</b></span><span>CV <b id="stagePhase">IDLE</b></span></div>
+  </section>
+  <section class="source-strip" aria-label="source preview">
+    <div class="source-card"><canvas id="sourcePreview" width="320" height="220"></canvas><div><p class="label">Input feed</p><p id="status">合成源运行中；开启摄像头后加载 MediaPipe Pose + Gesture，并生成局部手部蒙版。</p></div></div>
+    <div class="style-deck" aria-label="visual style controls"><p class="label">Visual direction</p><div class="style-modes" role="group" aria-label="选择视觉风格">
+      <button type="button" class="style-mode" data-style="chrome" aria-pressed="false"><i></i>冷铬</button>
+      <button type="button" class="style-mode" data-style="lacquer" aria-pressed="false"><i></i>朱漆</button>
+      <button type="button" class="style-mode is-active" data-style="prism" aria-pressed="true"><i></i>棱镜</button>
+      <button type="button" class="style-mode" data-style="mineral" aria-pressed="false"><i></i>深海矿物</button>
+    </div></div>
+  </section>
+  <section class="telemetry-band" aria-label="live image telemetry">
+    <div class="telemetry-copy"><p class="label">Unified Analysis Bus</p><p id="signalState">INITIALIZING ANALYSIS</p></div>
+    <canvas id="signalMap" width="920" height="86" aria-hidden="true"></canvas>
+    <dl class="telemetry-values"><div><dt>FRAME</dt><dd id="statFrame">0000</dd></div><div><dt>ANALYSIS FPS</dt><dd id="statFps">0.0</dd></div><div><dt>LUMA</dt><dd id="statLuma">0.000</dd></div><div><dt>MOTION</dt><dd id="statMotion">0.000</dd></div><div><dt>CENTER</dt><dd id="statCenter">0.50×0.50</dd></div><div><dt>RUNTIME</dt><dd id="statRuntime">0.0ms</dd></div><div><dt>POSE</dt><dd id="statTriangles">--</dd></div></dl>
+  </section>
+  <section class="grid" aria-label="effect previews">
+    <article class="effect-card effect-feedback"><div class="canvas-wrap"><canvas id="feedback" width="360" height="240"></canvas><span class="effect-hud">HERO / 01 <b id="readout-feedback">ECHO 0.00</b></span></div><h2>Body Echo / 时间身体</h2><p>人物 Mask 进入时间缓存；动作越快，过去的身体被 Optical Flow 拉得越远，背景尽量保持稳定。</p></article>
+    <article class="effect-card effect-displacement"><div class="canvas-wrap"><canvas id="displacement" width="360" height="240"></canvas><span class="effect-hud">HAND / 02 <b id="readout-displacement">WAIT HAND</b></span></div><h2>Hand Flow Skin / 手部流体蒙版</h2><p>MediaPipe 识别手部区域并生成羽化 Mask；只有手和手周围的局部区域发生 Optical Flow 位移。</p></article>
+    <article class="effect-card effect-slitscan"><div class="canvas-wrap"><canvas id="slitscan" width="360" height="240"></canvas><span class="effect-hud">TIME / 03 <b id="readout-slitscan">48F</b></span></div><h2>Slit-scan</h2><p>独立 frame-history effect，按时间切片拉伸真实动作。</p></article>
+    <article class="effect-card effect-pointcloud"><div class="canvas-wrap"><canvas id="pointcloud" width="360" height="240"></canvas><span class="effect-hud">HAND / 04 <b id="readout-pointcloud">WAIT HAND</b></span></div><h2>Magnetic Hand / 磁性手部粒子</h2><p>粒子直接采样手部 Mask 作为 Home Position；挥手会吹散粒子，停下或 Pinch 后重新吸回手型。</p></article>
+    <article class="effect-card effect-flow"><div class="canvas-wrap"><canvas id="flow" width="360" height="240"></canvas><span class="effect-hud">CV / 05 <b id="readout-flow">LK 0.00</b></span></div><h2>Lucas–Kanade flow particles</h2><p>粒子真正采样光流向量移动，主体动作方向会传递到粒子场。</p></article>
+    <article class="effect-card effect-triangulation"><div class="canvas-wrap"><canvas id="triangulation" width="360" height="240"></canvas><span class="effect-hud">POSE / 06 <b id="readout-triangulation">WAIT CV</b></span></div><h2>Pose topology mesh</h2><p>基于真实人体 landmarks 建立动态拓扑连线，而不是固定程序骨架。</p></article>
+    <article class="effect-card effect-pixelsort"><div class="canvas-wrap"><canvas id="pixelsort" width="360" height="240"></canvas><span class="effect-hud">SORT / 07 <b id="readout-pixelsort">MOTION CUT</b></span></div><h2>Motion pixel sort</h2><p>动作强度直接改变排序阈值和区域，保留原画颜色。</p></article>
+    <article class="effect-card effect-reaction"><div class="canvas-wrap"><canvas id="reaction" width="360" height="240"></canvas><span class="effect-hud">GPU / 08 <b id="readout-reaction">RD</b></span></div><h2>GPU Reaction-diffusion</h2><p>Gray–Scott 反应扩散迁移到 WebGL2，多步迭代由画面边缘、动作和 Mask 播种。</p></article>
+    <article class="effect-card effect-hdbeads"><div class="canvas-wrap"><canvas id="hdbeads" width="360" height="240"></canvas><span class="effect-hud">MASK / 09 <b id="readout-hdbeads">DENSE</b></span></div><h2>Mask bead field</h2><p>人像 Mask 控制高密度珠面场，人物进入后会形成轮廓雕塑。</p></article>
+    <article class="effect-card effect-beads"><div class="canvas-wrap"><canvas id="beads" width="360" height="240"></canvas><span class="effect-hud">MASK / 10 <b id="readout-beads">PERLER</b></span></div><h2>Perler body</h2><p>低分辨率珠粒只在人体 Mask 内重构主体。</p></article>
+    <article class="effect-card effect-rings"><div class="canvas-wrap"><canvas id="rings" width="360" height="240"></canvas><span class="effect-hud">HAND / 11 <b id="readout-rings">GESTURE FIELD</b></span></div><h2>Gesture Hand Field / 手势力场</h2><p>Closed Fist、Open Palm、Victory、Pinch、张合度和手速共同控制吸引、爆发、旋涡与局部能量场。</p></article>
+    <article class="effect-card effect-ascii"><div class="canvas-wrap"><canvas id="ascii" width="360" height="240"></canvas><span class="effect-hud">TYPE / 12 <b id="readout-ascii">LUMA</b></span></div><h2>ASCII reconstruction</h2><p>亮度映射字符密度，实时输入原色重构。</p></article>
+  </section>
+</main>
+<video id="camera" playsinline muted></video>
+<script type="module" src="./src/app.js"></script>
+<script type="module" src="./src/interactive-bootstrap.js"></script>
+</body>
 </html>
