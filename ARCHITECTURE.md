@@ -1,95 +1,156 @@
-# TD Effect Architecture
+# TD Effect Visual Engine Architecture
 
-## Goal
+## Design rule
 
-Move the project from a visual sketchbook to a realtime creative-coding runtime where camera analysis, effects, rendering, and UI are separate systems.
+v0.3 optimizes for **visual algorithms, signal fidelity, and realtime behavior first**. UI is a client of the engine; UI does not own camera state, CV state, analysis, scheduling, or effect lifecycle.
 
-## v0.2: runtime bridge
-
-The current repository has two rendering worlds:
-
-1. `effects.js`: twelve Canvas2D studies in one legacy animation loop.
-2. `three-stage.js`: a Three.js spatial particle field.
-
-`runtime-host.js` is now the bridge between them.
-
-### Signal Bus
-
-The runtime publishes shared source/style/intensity/luminance/motion/centroid/runtime-cost/wireframe/burst state through `window.TDRuntime.signals`.
-
-### Preview Analysis
-
-The runtime downsamples `sourcePreview` and computes average luminance, frame-to-frame motion energy, and motion centroid. This is real lightweight signal analysis, but it is not optical flow, pose estimation, person segmentation, or depth estimation.
-
-### Visibility-aware Scheduler
-
-The legacy Canvas2D loop and Three.js loop are throttled according to viewport visibility and browser tab visibility. This reduces unnecessary work without rewriting every study at once.
-
-## Honest capability boundary
-
-Use these names for the current effects:
-
-- `Motion-gradient particles`, not dense optical flow.
-- `Luma pseudo-depth points`, not depth sensing.
-- `Procedural wireframe`, not body tracking.
-
-The Three.js particle field now reacts to real motion energy and motion centroid from the current input, but it is still an abstract procedural body field. It does not follow actual joints.
-
-## Target v0.3 architecture
+## Runtime v0.3
 
 ```text
-Camera / Video / File
-        ↓
-    Source Engine
-        ↓
-   Analysis Engine
- ├─ Luminance
- ├─ Motion
- ├─ Edges
- ├─ Optical Flow
- ├─ Person Mask
- ├─ Pose
- └─ Depth
-        ↓
-      Signal Bus
-        ↓
-    Effect Registry
- ├─ feedback
- ├─ displacement
- ├─ slit-scan
- ├─ flow-field
- ├─ particle-body
- ├─ pixel-sort
- └─ reaction-diffusion
-        ↓
-     Compositor
-        ↓
- Canvas2D / WebGL / WebGPU
+SourceEngine
+    ↓
+AnalysisEngine ───────────────┐
+    ↓                         │
+CVEngine (camera / optional)  │
+    ↓                         │
+SignalBus  ←──────────────────┘
+  ↙   ↓   ↘
+FX  Composer  Pose field
 ```
 
-Each effect should eventually conform to a small contract:
+### RuntimeScheduler
+
+`RuntimeScheduler` owns one explicit master `requestAnimationFrame` loop. Systems and effects register named tasks with their own foreground, offscreen, and hidden-tab FPS policies.
+
+There is no global RAF monkey patch and no callback-name inference.
+
+### SourceEngine
+
+`SourceEngine` owns input state directly.
+
+Current sources:
+
+- synthetic realtime source
+- live camera source
+
+The engine exposes the current frame through one shared canvas, so downstream analysis and effects never infer source state from UI text.
+
+### Unified AnalysisEngine
+
+Analysis is computed once and shared by all effects:
+
+- luminance
+- temporal motion energy
+- motion centroid
+- Sobel edge field
+- coarse Lucas–Kanade optical-flow field
+- average flow vector
+
+The optical-flow grid is also encoded as an RG texture for GPU effects.
+
+### CVEngine
+
+When camera mode is active, `CVEngine` can load MediaPipe Pose Landmarker and publish:
+
+- pose landmarks
+- world landmarks
+- pose count
+- person segmentation mask
+
+If a segmentation mask is unavailable but landmarks exist, the engine generates a conservative landmark/body-line mask. If MediaPipe cannot load, non-pose effects continue running.
+
+## Effect Registry
+
+Effects are independent runtime units registered with metadata and cadence instead of living inside one monolithic render loop.
+
+Conceptual contract:
 
 ```js
 {
   id,
+  engine,
   inputs,
-  parameters,
+  fps,
+  stateful,
+  factory(context)
+}
+
+// effect instance
+{
   init(context),
-  update(signal, dt),
-  render(target),
-  resize(width, height),
+  update(signal, dt, time),
+  render(frameContext),
   dispose()
 }
 ```
 
-## Recommended next migration
+Current modules live under `src/effects/` and are scheduled independently.
 
-Split the heaviest effects first because they benefit most from independent scheduling and GPU migration:
+## GPU Pipeline
 
-1. Reaction-diffusion
-2. Pixel sorting
-3. Luminance displacement
-4. Motion-gradient particles
-5. Point cloud
+`src/gpu/shader-pass.js` provides a WebGL2 fullscreen-pass pipeline with ping-pong render targets and history feedback.
 
-After that, add real CV signals behind the same Signal Bus interface. A pose/person-segmentation library can then be integrated without forcing the effect layer to know which CV implementation produced the data.
+Current shader passes:
+
+- `flowWarp` — Lucas–Kanade flow texture drives source displacement
+- `feedback` — history texture + motion + mask driven trails
+- `maskGlow` — person-mask edge energy
+- `chromatic` — motion-centered RGB separation
+
+Reaction-diffusion uses a separate WebGL2 Gray–Scott ping-pong simulation so it can iterate multiple simulation steps per visual frame.
+
+## Real pose particle field
+
+The main overlay no longer uses a hard-coded procedural skeleton. `src/effects/pose-particles.js` emits GPU particles along detected pose connections and inside the person mask. It supports multiple detected poses and falls back to a motion-reactive abstract field when pose data is unavailable.
+
+## Effect Composer
+
+The main stage is a chain rather than one hard-coded effect:
+
+```text
+source
+  ↓
+flowWarp
+  ↓
+feedback
+  ↓
+maskGlow
+  ↓
+chromatic
+  ↓
+main output
+```
+
+The chain can be changed through `TDEngine.setChain(...)`. This is the basis for future node/DAG composition without coupling effect implementations to the UI.
+
+## Playground foundation
+
+The visual engine already exposes non-UI APIs for:
+
+- changing the composer chain
+- saving/loading presets with localStorage
+- recording the composed canvas through `captureStream()` + `MediaRecorder`
+- inspecting the effect manifest and runtime systems
+
+A later UI can wrap these APIs without changing the visual runtime.
+
+## Migration status
+
+### Completed in v0.3
+
+- explicit runtime scheduler
+- source engine
+- shared analysis engine
+- real Lucas–Kanade flow
+- MediaPipe pose/mask integration
+- modular effect registry
+- WebGL2 shader pipeline
+- GPU feedback and optical-flow displacement
+- GPU Gray–Scott reaction-diffusion
+- pose/mask driven particle field
+- configurable composer
+- preset/recording API foundation
+
+### Next visual work
+
+The architecture is now ready for higher-quality effect research instead of more framework churn. Useful next investigations include multiscale optical flow, temporal denoising, signed-distance person fields, GPU particle advection, depth estimation, shader feedback networks, and richer composer routing.
