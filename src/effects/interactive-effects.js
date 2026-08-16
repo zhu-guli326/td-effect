@@ -162,7 +162,7 @@ class MagneticBodyEffect {
 
   update(signal, dt, time) {
     this._reseedHomes(signal, time);
-    const delta = Math.min(2, Math.max(0.35, dt / 16.67 || 1));
+    const delta = Math.min(2, Math.max(0.35, (dt || 1 / 60) * 60));
     const motion = Math.min(1, signal.motion || 0);
     for (const p of this.particles) {
       const [fx, fy] = this.analysis.sampleFlow(p.x, p.y);
@@ -248,7 +248,7 @@ class HandSingularityEffect {
     const closeEnergy = Math.max(0, 0.28 - distance) * 3.4;
     const blast = Math.max(0, opening - 0.018) * 24;
     this.energy += (Math.max(closeEnergy, blast) - this.energy) * 0.24;
-    const delta = Math.min(2, Math.max(0.35, dt / 16.67 || 1));
+    const delta = Math.min(2, Math.max(0.35, (dt || 1 / 60) * 60));
     for (const p of this.particles) {
       let dx = this.centerX - p.x;
       let dy = this.centerY - p.y;
