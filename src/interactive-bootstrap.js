@@ -41,11 +41,19 @@ function updateReadout(id, signal) {
   const flow = Math.hypot(signal.flowX || 0, signal.flowY || 0);
   if (id === 'feedback') target.textContent = `ECHO ${(signal.motion || 0).toFixed(2)}`;
   if (id === 'displacement') target.textContent = signal.handReady ? `${signal.handGesture || 'HAND'} ${(signal.handSpeed || 0).toFixed(2)}` : `FLOW ${flow.toFixed(2)}`;
-  if (id === 'pointcloud') target.textContent = signal.handReady ? `HAND ×${signal.handCount || 0}` : signal.maskReady ? `BODY RETURN` : `FLOW ${flow.toFixed(2)}`;
+  if (id === 'pointcloud') target.textContent = signal.handReady ? `HAND ×${signal.handCount || 0}` : signal.maskReady ? 'BODY RETURN' : `FLOW ${flow.toFixed(2)}`;
   if (id === 'rings') {
     const gesture = signal.handGesture || 'None';
     const pinch = signal.handPinch || 0;
     target.textContent = signal.handReady ? `${gesture} P${pinch.toFixed(2)}` : `FORCE ${flow.toFixed(2)}`;
+  }
+  const state = document.getElementById('stageState');
+  if (state && signal.source === 'camera') {
+    state.textContent = signal.handReady
+      ? `HAND ${signal.handGesture || 'None'} / MASK + FLOW ACTIVE`
+      : signal.handStatus === 'loading'
+        ? 'LOADING MEDIAPIPE HAND GESTURE MODEL…'
+        : 'POSE + FLOW ACTIVE / WAITING FOR HAND';
   }
 }
 
