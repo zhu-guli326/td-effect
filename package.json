@@ -1,9 +1,9 @@
 {
-  "name": "td-effect-runtime",
-  "version": "0.2.0",
+  "name": "td-effect-visual-engine",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "python3 -m http.server 4175 --bind 127.0.0.1",
-    "check": "node --check runtime-host.js && node --check effects.js && node --check three-stage.js"
+    "check": "node --check src/app.js"
   }
 }
