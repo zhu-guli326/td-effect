@@ -85,7 +85,6 @@ export class CVEngine {
     try {
       if (!this.landmarker && !this.disabled) await this.init();
       if (!this.landmarker) return;
-      // Analyze the same mirrored source canvas used by the effects so CV coordinates align visually.
       const result = this.landmarker.detectForVideo(this.source.canvas, Math.floor(timeMs));
       this.poseLandmarks = result.landmarks || result.poseLandmarks || [];
       this.poseWorldLandmarks = result.worldLandmarks || result.poseWorldLandmarks || [];
