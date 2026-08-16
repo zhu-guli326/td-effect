@@ -1,0 +1,8 @@
+export class EffectRegistry{
+  constructor({scheduler,bus,source,analysis,cv}){this.scheduler=scheduler;this.bus=bus;this.source=source;this.analysis=analysis;this.cv=cv;this.entries=new Map();}
+  register(definition){const{id,canvasId=id,fps=30,offscreenFps=0,stateful=false,factory}=definition;if(this.entries.has(id))throw new Error(`Effect already registered: ${id}`);const canvas=document.getElementById(canvasId);if(!canvas)throw new Error(`Canvas not found for effect ${id}: #${canvasId}`);const context={id,canvas,bus:this.bus,source:this.source,analysis:this.analysis,cv:this.cv};const effect=factory(context);effect.init?.(context);const disposeTask=this.scheduler.register({id:`fx:${id}`,fps,offscreenFps:stateful?Math.max(3,offscreenFps||4):offscreenFps,element:canvas.closest('.effect-card')||canvas,callback:(time,dt)=>{const signal=this.bus.snapshot();effect.update?.(signal,dt,time);effect.render?.({time,dt,signal,source:this.source.canvas,flow:this.analysis.flowCanvas,edges:this.analysis.edgeCanvas,mask:this.cv.maskCanvas,landmarks:this.cv.poseLandmarks});}});this.entries.set(id,{definition,effect,disposeTask});return effect;}
+  get(id){return this.entries.get(id)?.effect||null;}
+  setEnabled(id,enabled){this.scheduler.setEnabled(`fx:${id}`,enabled);}
+  dispose(){for(const{effect,disposeTask}of this.entries.values()){disposeTask?.();effect.dispose?.();}this.entries.clear();}
+  manifest(){return Array.from(this.entries.values()).map(({definition})=>({id:definition.id,engine:definition.engine||'canvas2d',inputs:definition.inputs||['frame'],fps:definition.fps||30,stateful:Boolean(definition.stateful)}));}
+}
